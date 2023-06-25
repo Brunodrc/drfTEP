@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from .models import Stock, Transaction
-from .serializers import StockSerializer, TransactionSerializer
+from .serializers import StockSerializer, TransactionSerializer, TransactionSerializerView
 from rest_framework import filters
 from django.db.models import Q
 
@@ -34,20 +34,25 @@ class TransactionViewSet(viewsets.ModelViewSet):
         
         for transaction in queryset:
             transaction.total_operation = transaction.value_total_transaction()
-             
+        print(f'conteudo do queriset: {queryset}')
         return queryset
 
     def perform_create(self, serializer):
-
         serializer.save(investor=self.request.user.investor)
-        return Response({'message': 'Transação criada com sucesso.', 
-                         'transaction': serializer.data}, status=201)
+        serializer.instance.total_operation = serializer.instance.value_total_transaction()
+        stock_code = self.request.data['stock_code']
+        stock = Stock.objects.get(code=stock_code)
+        serializer.stock = stock
+        
+        return Response({
+            'message': 'Transação criada com sucesso.',
+            'transaction': serializer.data,
+        }, status=201)
 
 #  views apenas apenas para leitura:
-
 # lista trasações de um unica ação  
 class TransactionStockView(viewsets.ReadOnlyModelViewSet):
-    serializer_class = TransactionSerializer
+    serializer_class = TransactionSerializerView
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -66,27 +71,19 @@ class TransactionStockView(viewsets.ReadOnlyModelViewSet):
             # Obter ou inicializar as informações da ação no dicionário de resumo
             stock_summary = stocks_summary.get(stock_id, {
                 'transactions': [],
-                'total_quantity': 0,
-                'total_value': 0,
+                'total_quantity': transaction.quantity_stock,
                 'average_price': 0,
                 'profit_loss': 0,
-                'total_profit_loss': 0,
             })
             stock_summary['transactions'].append(transaction)
 
             # Calcular o preço médio
-            total_quantity = stock_summary['total_quantity']
-            total_value = stock_summary['total_value']
-            new_quantity = total_quantity + transaction.quantity_stock
-            new_value = (total_quantity * stock_summary['average_price'] + transaction.buy_value()) / new_quantity
-            stock_summary['average_price'] = new_value
+            if transaction.type_of == 'C':
+                count = stock_summary['total_quantity']
+                stock_summary['average_price'] = ((count * stock_summary['average_price'])+  transaction.total_operation/(count+transaction.quantity_stock))
 
-            # Atualizar o valor total e lucro/prejuízo
-            stock_summary['total_quantity'] = new_quantity
-            stock_summary['total_value'] += transaction.buy_value()
-
+            # Calcular o lucro/prejuízo somente se for uma venda
             if transaction.type_of == 'V':
-                # Calcular o lucro/prejuízo somente se for uma venda
                 stock_summary['profit_loss'] += transaction.total_operation - (transaction.quantity_stock * stock_summary['average_price'])
 
             # Atualizar as informações da ação no dicionário de resumo
@@ -113,7 +110,6 @@ class TransactionStockView(viewsets.ReadOnlyModelViewSet):
                 'brokerage': transaction.brokerage,
                 'date_done': transaction.date_done,
                 'total_operation': transaction.total_operation,
-                'total_value': stock_summary['total_value'],
                 'average_price': stock_summary['average_price'],
                 'profit_loss': stock_summary['profit_loss'],
             }
@@ -123,11 +119,10 @@ class TransactionStockView(viewsets.ReadOnlyModelViewSet):
             summary_list.append(summary_data)
         print(f'Lista obtida: {summary_list}')
         return summary_list
-        # return queryset
 
 #lista as transações de mes e ano escolhidas
 class TransactionMonthYearViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = TransactionSerializer
+    serializer_class = TransactionSerializerView
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -155,7 +150,7 @@ class TransactionMonthYearViewSet(viewsets.ReadOnlyModelViewSet):
 
 # lista as transações e informa o preço médio, valor total e lucro/prejuízo para cada ação e total lucro de todas as transaçẽes
 class SummaryTransactionViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = TransactionSerializer
+    serializer_class = TransactionSerializerView
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -171,35 +166,26 @@ class SummaryTransactionViewSet(viewsets.ReadOnlyModelViewSet):
             # Obter ou inicializar as informações da ação no dicionário de resumo
             stock_summary = stocks_summary.get(stock_id, {
                 'transactions': [],
-                'total_quantity': 0,
-                'total_value': 0,
+                'total_quantity': transaction.quantity_stock,
                 'average_price': 0,
                 'profit_loss': 0,
-                'total_profit_loss': 0,
             })
             stock_summary['transactions'].append(transaction)
 
             # Calcular o preço médio
-            total_quantity = stock_summary['total_quantity']
-            total_value = stock_summary['total_value']
-            new_quantity = total_quantity + transaction.quantity_stock
-            new_value = (total_quantity * stock_summary['average_price'] + transaction.buy_value()) / new_quantity
-            stock_summary['average_price'] = new_value
+            if transaction.type_of == 'C':
+                count = stock_summary['total_quantity']
+                stock_summary['average_price'] = ((count * stock_summary['average_price'])+  transaction.total_operation/(count+transaction.quantity_stock))
 
-            # Atualizar o valor total e lucro/prejuízo
-            stock_summary['total_quantity'] = new_quantity
-            stock_summary['total_value'] += transaction.buy_value()
-
+            # Calcular o lucro/prejuízo somente se for uma venda
             if transaction.type_of == 'V':
-                # Calcular o lucro/prejuízo somente se for uma venda
                 stock_summary['profit_loss'] += transaction.total_operation - (transaction.quantity_stock * stock_summary['average_price'])
 
             # Atualizar as informações da ação no dicionário de resumo
             stocks_summary[stock_id] = stock_summary
-
-        # Calcular o lucro total de todas as ações
-        total_profit_loss = sum(stock_summary['profit_loss'] for stock_summary in stocks_summary.values())
-        # Lista para armazenar os dados resumidos das transações
+            print(f'REsultado ---> {stock_summary}')
+        
+        #o resumo das infromações obtidas será colocado aqui
         summary_list = []
 
         # Iterar sobre as transações e adicionar os dados resumidos à lista
@@ -219,7 +205,6 @@ class SummaryTransactionViewSet(viewsets.ReadOnlyModelViewSet):
                 'brokerage': transaction.brokerage,
                 'date_done': transaction.date_done,
                 'total_operation': transaction.total_operation,
-                'total_value': stock_summary['total_value'],
                 'average_price': stock_summary['average_price'],
                 'profit_loss': stock_summary['profit_loss'],
             }
