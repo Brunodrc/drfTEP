@@ -2,9 +2,9 @@ from django.db import models
 from account.models import Investor
 from datetime import datetime
 from django.core.exceptions import ValidationError
+import re
 
 def validate_code(value):
-    import re
 
     pattern = r'^[A-Z]{4}\d{1,2}$'
     if not re.match(pattern, value):
