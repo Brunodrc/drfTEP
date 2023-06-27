@@ -79,15 +79,10 @@ class TransactionStockView(viewsets.ReadOnlyModelViewSet):
 
             # Calcular o preço médio
             if transaction.type_of == 'C':
-<<<<<<< HEAD
-                count = stock_summary['total_quantity']
-                stock_summary['average_price'] = ((count * stock_summary['average_price'])+  transaction.total_operation/(count+transaction.quantity_stock))
-=======
                 count = 0
                 stock_summary['average_price'] = ((count * stock_summary['average_price'])+  transaction.total_operation/(count+transaction.quantity_stock))
                 count = count + transaction.quantity_stock
                 print(f"contador: {count}; preço medio: {stock_summary['average_price']}; total da transação: { transaction.total_operation}")
->>>>>>> 29d11bc (correção do preço medio)
 
             # Calcular o lucro/prejuízo somente se for uma venda
             if transaction.type_of == 'V':
@@ -95,11 +90,7 @@ class TransactionStockView(viewsets.ReadOnlyModelViewSet):
 
             # Atualizar as informações da ação no dicionário de resumo
             stocks_summary[stock_id] = stock_summary
-<<<<<<< HEAD
-            print(f'REsultado ---> {stock_summary}')
-=======
             
->>>>>>> 29d11bc (correção do preço medio)
         
         #o resumo das infromações obtidas será colocado aqui
         summary_list = []
@@ -128,11 +119,7 @@ class TransactionStockView(viewsets.ReadOnlyModelViewSet):
            
             # Adicionar o dicionário à lista
             summary_list.append(summary_data)
-<<<<<<< HEAD
-        print(f'Lista obtida: {summary_list}')
-=======
         
->>>>>>> 29d11bc (correção do preço medio)
         return summary_list
 
 #lista as transações de mes e ano escolhidas
@@ -189,15 +176,10 @@ class SummaryTransactionViewSet(viewsets.ReadOnlyModelViewSet):
 
             # Calcular o preço médio
             if transaction.type_of == 'C':
-<<<<<<< HEAD
-                count = stock_summary['total_quantity']
-                stock_summary['average_price'] = ((count * stock_summary['average_price'])+  transaction.total_operation/(count+transaction.quantity_stock))
-=======
                 count = 0
                 stock_summary['average_price'] = ((count * stock_summary['average_price'])+  transaction.total_operation/(count+transaction.quantity_stock))
                 count = count + transaction.quantity_stock
                 print(f"contador: {count}; preço medio: {stock_summary['average_price']}; total da transação: { transaction.total_operation}")
->>>>>>> 29d11bc (correção do preço medio)
 
             # Calcular o lucro/prejuízo somente se for uma venda
             if transaction.type_of == 'V':
@@ -205,11 +187,7 @@ class SummaryTransactionViewSet(viewsets.ReadOnlyModelViewSet):
 
             # Atualizar as informações da ação no dicionário de resumo
             stocks_summary[stock_id] = stock_summary
-<<<<<<< HEAD
-            print(f'REsultado ---> {stock_summary}')
-=======
             
->>>>>>> 29d11bc (correção do preço medio)
         
         #o resumo das infromações obtidas será colocado aqui
         summary_list = []
@@ -238,9 +216,5 @@ class SummaryTransactionViewSet(viewsets.ReadOnlyModelViewSet):
            
             # Adicionar o dicionário à lista
             summary_list.append(summary_data)
-<<<<<<< HEAD
-        print(f'Lista obtida: {summary_list}')
-=======
         
->>>>>>> 29d11bc (correção do preço medio)
         return summary_list
